@@ -1,1 +1,5 @@
 docs/kicad
+wemos/Debug/
+wemos/Release/wemos.ino.elf
+wemos/Release/
+wemos/__vm/
