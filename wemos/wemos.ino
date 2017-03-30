@@ -51,13 +51,16 @@ int dif = 0;
 const int minDif = 10;
 const int maxDif = 300;
 
+/*Tick*/
+int tick = 0;
+
 void nextValue();
 void printValues();
 void calcDif();
 boolean isPeak();
 
 int HTTPPostFunc(char* URI, const char* reqJson, const char* token, String& responseJson);
-void sendMeasurement();
+void sendMeasurement(int& value);
 
 /*RESTFul client stuff*/
 String requestJson = "";
@@ -240,7 +243,7 @@ void loop() {
 	{
 		Serial.println(millis());
 		Serial.println("Sending ticks...");
-		sendMeasurement();
+		sendMeasurement(tick);
 		Serial.println(millis());
 	}
 	delay(25);
@@ -289,7 +292,7 @@ void nextValue() {
 	newValue = analogRead(vInput);
 }
 
-int tick = 0;
+
 void tickFunc() {
 	tick++;
 }
@@ -321,6 +324,9 @@ int HTTPPostFunc(char* URI, const char* reqJson, const char* token, String& resp
 		if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED || httpCode == HTTP_CODE_ACCEPTED) {
 			responseJson = String(http.getString());
 			Serial.println(responseJson);
+
+			// reset tick counter if POST is succeed
+			tick = 0;
 		}
 		else {
 			responseJson = String(http.getString());
@@ -341,11 +347,11 @@ int HTTPPostFunc(char* URI, const char* reqJson, const char* token, String& resp
  * 		"value": "347"
  *	}
  */
-void sendMeasurement() {
+void sendMeasurement(int& value) {
 	requestJson = String("{ \"timestamp\": \"");
 	requestJson.concat(getTimeStamp());
 	requestJson.concat("\", \"value\": \"");
-	requestJson.concat(123);
+	requestJson.concat(value);
 	requestJson.concat("\" }");
 	Serial.println(requestJson);
 	HTTPPostFunc(API_MEASUREMENT_URI, requestJson.c_str(), accessToken, payload);
