@@ -67,6 +67,7 @@ String requestJson = "";
 const char* accessToken = "";
 String payload = "";
 StaticJsonBuffer<200> jsonBuffer;
+const char* parsedJsonMessage;
 
 void setupWiFi()
 {
@@ -241,10 +242,10 @@ void loop() {
 
 	if ((now() - lastHttpRequest) >= 10)
 	{
-		Serial.println(millis());
+		//Serial.println(millis());
 		Serial.println("Sending ticks...");
 		sendMeasurement(tick);
-		Serial.println(millis());
+		//Serial.println(millis());
 	}
 	delay(25);
 	//end time stuff
@@ -303,8 +304,7 @@ int HTTPPostFunc(char* URI, const char* reqJson, const char* token, String& resp
 	// configure traged server and url
 	//http.begin("https://192.168.1.179/test.html", "7a 9c f4 db 40 d3 62 5a 6e 21 bc 5c cc 66 c8 3e a1 45 59 38"); //HTTPS
 
-	// arguments: host, port, uri, https_fingerprint (currently http, so we don't need a fingerprint)
-	http.begin(API_HOST, 80, URI);
+	http.begin(API_HOST, 443, URI, "A1 68 0C 37 06 9E 59 35 1A 3F 51 6C 89 5F E2 A8 F4 3E 97 3E");
 
 	Serial.print("[HTTP] POST...\n");
 	http.addHeader("Content-Type", "Application/Json");
@@ -321,16 +321,27 @@ int HTTPPostFunc(char* URI, const char* reqJson, const char* token, String& resp
 		Serial.printf("[HTTP] POST... code: %d\n", httpCode);
 
 		// file found at server
+		responseJson = String(http.getString());
+		Serial.println(responseJson);
 		if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_CREATED || httpCode == HTTP_CODE_ACCEPTED) {
-			responseJson = String(http.getString());
-			Serial.println(responseJson);
-
+			
 			// reset tick counter if POST is succeed
 			tick = 0;
 		}
+		else if (httpCode == HTTP_CODE_BAD_REQUEST)
+		{
+			JsonObject& root = jsonBuffer.parseObject(payload);
+			if (!root.success()) {
+				Serial.println("parseObject() failed");
+				return 1;
+			}
+			parsedJsonMessage = root["message"];
+			if (parsedJsonMessage == "invalid token") {
+				getAccessToken(); //get a new access token and go on.
+			}
+		}
 		else {
-			responseJson = String(http.getString());
-			Serial.println(responseJson);
+			// Do nothing...
 		}
 	}
 	else {
